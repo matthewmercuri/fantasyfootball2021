@@ -1,4 +1,4 @@
-# from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup
 import os
 import pandas as pd
 import requests
@@ -7,13 +7,22 @@ from tqdm import tqdm
 
 class Data:
 
-    @staticmethod
-    def historical_ff_agg_data(MIN_GAMES=8):
+    def _find_profile_links(self, html):
+        soup = BeautifulSoup(html, 'lxml')
+        player_table_rows = soup.find_all('td', {'data-stat': 'player'})
+
+        profile_links_dict = {}
+        for x in player_table_rows:
+            data = x.find('a')
+            name = data.contents[0].replace('*', ' ').replace('+', ' ').strip().upper()
+            link = data['href']
+            profile_links_dict[name] = str(link)
+
+        return profile_links_dict
+
+    def historical_ff_agg_data(self, force_update: bool = False, MIN_GAMES: int = 8):
 
         # fetch and/or load historical FF performance data
-
-        force_update = False
-
         YEARS = [2020, 2019, 2018, 2017, 2016]
         URL_FF_START = 'https://www.pro-football-reference.com/years/'
         URL_FF_END = '/fantasy.htm'
@@ -32,6 +41,10 @@ class Data:
                 if year not in FOUND_YEARS:
                     GET_YEARS.append(year)
             FETCH = True
+
+        if force_update is True:
+            GET_YEARS = YEARS
+
         # ========================================================================
         if FETCH or force_update:
             print('Gathering data...')
@@ -43,6 +56,7 @@ class Data:
             for year in tqdm(GET_YEARS):
                 r = requests.get(URL_FF_START + str(year) + URL_FF_END, 'lxml')
                 df = pd.read_html(r.text, index_col=0)[0]
+                profile_links_dict = self._find_profile_links(r.text)
 
                 # fixing column names ============================================
                 df.columns = df.columns.to_flat_index()
@@ -64,6 +78,9 @@ class Data:
                 df['Player'] = df['Player'].apply(lambda x: x.replace('*', ' '))
                 df['Player'] = df['Player'].apply(lambda x: x.replace('+', ' '))
                 df['Player'] = df['Player'].apply(lambda x: x.strip().upper())
+
+                # adding profootballref profile links to df
+                df['Player_Profile_Link'] = df['Player'].map(profile_links_dict)
 
                 df.to_csv(f'./data/{year}_ff_rankings.csv')
 
