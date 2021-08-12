@@ -22,6 +22,17 @@ class Data:
 
         return profile_links_dict
 
+    def _historical_ff_agg_data_add_cols(self, df):
+        '''
+        Discriminating against large outliers here (optional).
+        Not using data where FantPt/G is less than 2
+        '''
+
+        df['FantPt/G'] = df['Fantasy_FantPt'] / df['Games_G']
+        df = df[df['FantPt/G'] >= 2]
+
+        return df
+
     def historical_ff_agg_data(self, force_update: bool = False,
                                MIN_GAMES: int = 8) -> pd.DataFrame:
         ''' TODO:
@@ -121,27 +132,24 @@ class Data:
                       'Player_Profile_Link': str}
 
         ffrank_df = ffrank_df.astype(types_dict)
-
         ffrank_df = ffrank_df[ffrank_df['Games_G'] >= MIN_GAMES]
-        ffrank_df['FantPt/G'] = ffrank_df['Fantasy_FantPt'] / ffrank_df['Games_G']
 
-        '''
-        Discriminating against large outliers here (optional).
-        Not using data where FantPt/G is less than 2
-        '''
-        ffrank_df = ffrank_df[ffrank_df['FantPt/G'] >= 2]
-
+        ffrank_df = self._historical_ff_agg_data_add_cols(ffrank_df)
         self.ffrank_df = ffrank_df
 
         return ffrank_df
 
     def get_player_gamelog(self, player: str) -> pd.DataFrame:
+        ''' Returns a DataFrame of a specific player's gamelogs
+        '''
         player = player.strip().upper()
 
         if self.ffrank_df is None:
             main_df = self.historical_ff_agg_data()
         else:
             main_df = self.ffrank_df
+
+        return main_df[player]
 
     def get_depth_charts(self):
         pass
