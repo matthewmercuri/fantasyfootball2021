@@ -6,6 +6,8 @@ from tqdm import tqdm
 
 
 class Data:
+    def __init__(self) -> None:
+        self.ffrank_df = None
 
     def _find_profile_links(self, html):
         soup = BeautifulSoup(html, 'lxml')
@@ -20,7 +22,15 @@ class Data:
 
         return profile_links_dict
 
-    def historical_ff_agg_data(self, force_update: bool = False, MIN_GAMES: int = 8):
+    def historical_ff_agg_data(self, force_update: bool = False,
+                               MIN_GAMES: int = 8) -> pd.DataFrame:
+        ''' TODO:
+        - discrimate against oultiers in a new function
+        - figure out a better way to manage min games
+        '''
+
+        if MIN_GAMES != 8:
+            force_update = True
 
         # fetch and/or load historical FF performance data
         YEARS = [2020, 2019, 2018, 2017, 2016]
@@ -107,7 +117,8 @@ class Data:
                       'Fantasy_FantPt': float, 'Fantasy_PPR': float,
                       'Fantasy_DKPt': float, 'Fantasy_FDPt': float,
                       'Fantasy_VBD': float,
-                      'Fantasy_PosRank': int, 'Fantasy_OvRank': int, 'for_year': int}
+                      'Fantasy_PosRank': int, 'Fantasy_OvRank': int, 'for_year': int,
+                      'Player_Profile_Link': str}
 
         ffrank_df = ffrank_df.astype(types_dict)
 
@@ -120,4 +131,17 @@ class Data:
         '''
         ffrank_df = ffrank_df[ffrank_df['FantPt/G'] >= 2]
 
+        self.ffrank_df = ffrank_df
+
         return ffrank_df
+
+    def get_player_gamelog(self, player: str) -> pd.DataFrame:
+        player = player.strip().upper()
+
+        if self.ffrank_df is None:
+            main_df = self.historical_ff_agg_data()
+        else:
+            main_df = self.ffrank_df
+
+    def get_depth_charts(self):
+        pass
