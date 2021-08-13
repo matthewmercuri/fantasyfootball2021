@@ -1,4 +1,6 @@
 import data
+import numpy as np
+import pandas as pd
 
 ''' Simulate drafts to see what the ideal draft order would be
 - need a way to enforce contraints
@@ -34,6 +36,46 @@ class DraftSimulator:
     def __init__(self) -> None:
         self.Data = data.Data()
 
+    def _add_kickers_defence(self, df):
+        ''' adds kickers and defence to draftees
+        - adds 32 rows of defences using normal dist
+        - adds 32 rows of kickers using normal dist
+
+        https://www.lineups.com/fantasy-football-stats/defense
+        https://www.lineups.com/fantasy-football-stats/kicker
+        '''
+
+        # adding defences
+        defence_df = pd.read_csv('./data/defensefantperf2020.csv')
+        defence_df['FantPts'] = defence_df['FPPG'] * 16
+        d_mean = defence_df['FantPts'].mean()
+        d_std = defence_df['FantPts'].std()
+
+        sim_defences = np.random.normal(d_mean, d_std, 32)
+        sim_defences_df = pd.DataFrame(sim_defences)
+        sim_defences_df['FantPos'] = 'DEF'
+        sim_defences_df.rename(columns={sim_defences_df.columns[0]: "Fantasy_FantPt"},
+                               inplace=True)
+
+        df = pd.concat([df, sim_defences_df])
+
+        # adding kickers
+        kickers_df = pd.read_csv('./data/kickersfantperf2020.csv')
+        k_mean = kickers_df['FPTS'].mean()
+        k_std = kickers_df['FPTS'].std()
+
+        sim_kickers = np.random.normal(k_mean, k_std, 40)
+        sim_kickers_df = pd.DataFrame(sim_kickers)
+        sim_kickers_df['FantPos'] = 'K'
+        sim_kickers_df.rename(columns={sim_kickers_df.columns[0]: "Fantasy_FantPt"},
+                              inplace=True)
+
+        df = pd.concat([df, sim_kickers_df])
+
+        df.reset_index(drop=True, inplace=True)
+
+        return df
+
     def _get_draft_list(self, year: int = 2020):
         df = self.Data.historical_ff_agg_data()
 
@@ -43,12 +85,8 @@ class DraftSimulator:
             raise KeyError('Not a valid year entered for draft sim.')
 
         df = df[['FantPos', 'Fantasy_FantPt']]
-        df = self._add_kickers_defense(df)
+        df = self._add_kickers_defence(df)
 
-        return df
-
-    def _add_kickers_defense(self, df):
-        ''' adds kickers and defence to draftees '''
         return df
 
     def _get_position_count_draftees(self, year: int = 2020):

@@ -12,6 +12,7 @@ requests = "^2.26.0"
 beautifulsoup4 = "^4.9.3"
 lxml = "^4.6.3"
 scipy = "^1.7.1"
+numpy = "^1.21.1"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.9.2"

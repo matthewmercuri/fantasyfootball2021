@@ -14,5 +14,5 @@ import draftsim
 # Utils.fantasy_points_normality_test(position='WR')
 
 DraftSimulator = draftsim.DraftSimulator()
-# print(DraftSimulator._get_draft_list())
-DraftSimulator._get_position_count_draftees()
+print(DraftSimulator._get_draft_list())
+# DraftSimulator._get_position_count_draftees()
