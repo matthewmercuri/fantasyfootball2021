@@ -33,6 +33,30 @@ class Data:
 
         return df
 
+    def _clean_player_gamelog_df(self, df, player_pos):
+        ''' Cleaning gamelog dataframes.
+        - do I really need to condition cleaning on position? Is it
+        possible to have a dict holding type for different possible columns?
+        '''
+        # cleaning columns
+        df.columns = df.columns.to_flat_index()
+        df.columns = ["_".join(x) for x in df.columns]
+        for col in df.columns:
+            if col[:3] == 'Unn':
+                df.rename(columns={col: col.split('_')[-1]}, inplace=True)
+
+        # dropping non-data rows
+        df = df[df['Tm'] != 'Tm']
+        df = df[:-1]
+
+        if player_pos == 'QB':
+            pass
+        else:
+            raise KeyError(f"{player_pos} is not a valid player_pos " +
+                           "(can't clean gamelog)")
+
+        return df
+
     def historical_ff_agg_data(self, force_update: bool = False,
                                MIN_GAMES: int = 8) -> pd.DataFrame:
         ''' TODO:
@@ -139,17 +163,42 @@ class Data:
 
         return ffrank_df
 
-    def get_player_gamelog(self, player: str) -> pd.DataFrame:
-        ''' Returns a DataFrame of a specific player's gamelogs
+    def get_player_gamelog_df(self, player: str) -> pd.DataFrame:
+        ''' Returns a DataFrame of a specific player's gamelogs.
+        Example: https://www.pro-football-reference.com/players/P/PresDa01/gamelog/
+
+        TODO:
+        - handle for case during season (finding player gamelogs for new players).
+          This currently only is able to pull for players that have played in
+          the last few seasons.
         '''
+        BASE_URL = 'https://www.pro-football-reference.com'
+
         player = player.strip().upper()
 
         if self.ffrank_df is None:
-            main_df = self.historical_ff_agg_data()
+            df = self.historical_ff_agg_data()
         else:
-            main_df = self.ffrank_df
+            df = self.ffrank_df
 
-        return main_df[player]
+        available_players = df['Player'].to_list()
+        if player not in available_players:
+            raise KeyError(f'{player} not in available players list.')
+
+        player_df = df[df['Player'] == player]
+
+        player_gamelog_url = (BASE_URL + player_df['Player_Profile_Link'].iloc[0][:-4]
+                              + '/gamelog/')
+        player_pos = player_df['FantPos'].iloc[0].strip().upper()
+
+        r = requests.get(player_gamelog_url, 'lxml')
+        gamelog_df = pd.read_html(r.text, index_col=0)[0]
+
+        gamelog_df = self._clean_player_gamelog_df(gamelog_df, player_pos)
+        gamelog_df.to_csv('gamelog_test.csv')
+
+        return gamelog_df
 
     def get_depth_charts(self):
+        ''' team depth charts '''
         pass
