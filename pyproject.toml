@@ -5,12 +5,13 @@ description = ""
 authors = ["Matthew Mercuri <mercurimatthew@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<3.10"
 pandas = "^1.3.1"
 tqdm = "^4.61.2"
 requests = "^2.26.0"
 beautifulsoup4 = "^4.9.3"
 lxml = "^4.6.3"
+scipy = "^1.7.1"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.9.2"
